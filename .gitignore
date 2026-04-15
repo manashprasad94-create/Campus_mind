@@ -1,0 +1,40 @@
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# API Keys - NEVER commit this
+.env
+
+# Vector Store - too large for git
+vectorstore/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Test outputs
+data/output_notes.md
+data/output_notes.pdf
+data/test_notes.jpg
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs
+*.log
+
+# Distribution
+dist/
+build/
+*.egg-info/
+.streamlit/secrets.toml

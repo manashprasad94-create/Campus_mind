@@ -1,0 +1,15 @@
+langchain
+langchain-community
+langchain-google-genai
+langchain-huggingface
+langchain-text-splitters
+google-genai
+faiss-cpu
+sentence-transformers
+docling
+python-dotenv
+Pillow
+reportlab
+markdown
+streamlit
+langchain_groq
