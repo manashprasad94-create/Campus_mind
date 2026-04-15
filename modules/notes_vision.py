@@ -2,13 +2,13 @@
 
 import os
 import base64
-import streamlit as st
+
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
 load_dotenv()
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY") or st.secrets["GOOGLE_API_KEY"]
+
 client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
 VISION_PROMPT = """

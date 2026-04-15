@@ -1,5 +1,4 @@
 import os
-import streamlit as st
 from dotenv import load_dotenv
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -15,7 +14,7 @@ load_dotenv()
 # ---------------------------------------------------------------------------
 _faq_chain = None
 _memory = None
-GROQ_API_KEY = os.getenv("GROQ_API_KEY") or st.secrets["GROQ_API_KEY"]
+
 
 # ---------------------------------------------------------------------------
 # Prompt

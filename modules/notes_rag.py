@@ -1,7 +1,7 @@
 # modules/notes_rag.py
 
 import os
-import streamlit as st
+
 from dotenv import load_dotenv
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -17,7 +17,7 @@ load_dotenv()
 # Global variables
 _embeddings = None
 _llm = None
-GROQ_API_KEY = os.getenv("GROQ_API_KEY") or st.secrets["GROQ_API_KEY"]
+
 
 def _load_components():
     """Load components only when first needed"""

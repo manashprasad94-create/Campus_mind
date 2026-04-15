@@ -1,12 +1,12 @@
 # modules/summarizer.py
 
 import os
-import streamlit as st
+
 from dotenv import load_dotenv
 from groq import Groq
 
 load_dotenv()
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY") or st.secrets["GOOGLE_API_KEY"]
+
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
