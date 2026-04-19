@@ -7,7 +7,6 @@
 3. Install dependencies
    pip install -r requirements.txt
 4. Create .env file and add
-   GOOGLE_API_KEY=your_key_here
    GROQ_API_KEY=your_key_here
 5. Run ingestion
    python ingest.py
