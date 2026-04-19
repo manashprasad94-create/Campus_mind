@@ -376,7 +376,7 @@ with st.sidebar:
     st.markdown('<p class="section-label">About</p>', unsafe_allow_html=True)
     st.markdown("""
     <div style="font-size:0.82rem; color:var(--muted); line-height:1.7;">
-    CampusMind uses <b style="color:var(--text)">Gemini 2.5 Flash</b>
+    CampusMind uses <b style="color:var(--text)">LLM's</b>
     and RAG to power intelligent Q&A over your college FAQ and 
     personal handwritten notes.
     </div>
@@ -413,7 +413,7 @@ if page == "💬  FAQ Assistant":
         if not st.session_state.faq_history:
             st.markdown("""
             <div class="info-box fade-in">
-                👋 Hello! I'm <b>EduAssist</b>, your college FAQ guide.
+                👋 Hello! I'm <b>CampusMind</b>, your college FAQ guide.
                 Ask me anything about admissions, courses, campus life, or facilities!
             </div>
             """, unsafe_allow_html=True)
@@ -498,89 +498,117 @@ elif page == "📝  Notes Assistant":
 
         st.markdown('<p class="section-label">Step 1 — Upload Your Notes</p>', unsafe_allow_html=True)
 
-        uploaded = st.file_uploader(
+        uploaded_files = st.file_uploader(
             "Upload handwritten notes",
             type=["jpg", "jpeg", "png", "webp", "pdf"],
             label_visibility="collapsed",
             help="Supported: JPG, PNG, WEBP, PDF",
+            accept_multiple_files=True
         )
 
-        if uploaded:
-            col_prev, col_info = st.columns([1, 1])
-            with col_prev:
-                if uploaded.type.startswith("image/"):
-                    st.image(uploaded, caption="Preview", use_container_width=True)
-                else:
-                    st.markdown(f"""
-                    <div class="card fade-in" style="text-align:center; padding: 2rem;">
-                        <div style="font-size:3rem">📄</div>
-                        <div style="margin-top:0.5rem; color:var(--text)">{uploaded.name}</div>
-                        <div style="color:var(--muted); font-size:0.82rem">{uploaded.size // 1024} KB · PDF</div>
-                    </div>
-                    """, unsafe_allow_html=True)
+        if uploaded_files:
+            # Preview grid for all uploaded files
+            st.markdown('<p class="section-label">Uploaded Files</p>', unsafe_allow_html=True)
+            cols = st.columns(min(len(uploaded_files), 4))
 
-            with col_info:
-                st.markdown(f"""
-                <div class="card card-gold fade-in">
-                    <p class="section-label">File Details</p>
-                    <table style="width:100%; font-size:0.88rem; border-collapse:collapse;">
-                        <tr>
-                            <td style="color:var(--muted); padding:0.35rem 0">Name</td>
-                            <td style="color:var(--text)">{uploaded.name}</td>
-                        </tr>
-                        <tr>
-                            <td style="color:var(--muted); padding:0.35rem 0">Type</td>
-                            <td style="color:var(--text)">{uploaded.type}</td>
-                        </tr>
-                        <tr>
-                            <td style="color:var(--muted); padding:0.35rem 0">Size</td>
-                            <td style="color:var(--text)">{uploaded.size // 1024} KB</td>
-                        </tr>
-                    </table>
-                    <br>
-                    <div class="info-box" style="margin:0">
-                        ✨ Gemini Vision will transcribe your notes and check for errors.
-                    </div>
+            for i, uploaded in enumerate(uploaded_files):
+                with cols[i % 4]:
+                    if uploaded.type.startswith("image/"):
+                        st.image(uploaded, caption=uploaded.name, width=150)
+                    else:
+                        st.markdown(f"""
+                        <div class="card fade-in" style="text-align:center; padding: 0.75rem;">
+                            <div style="font-size:1.8rem">📄</div>
+                            <div style="margin-top:0.3rem; color:var(--text); font-size:0.75rem; 
+                                word-break:break-all;">{uploaded.name}</div>
+                            <div style="color:var(--muted); font-size:0.72rem">{uploaded.size // 1024} KB · PDF</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+            # Summary info card
+            total_size = sum(f.size for f in uploaded_files)
+            st.markdown(f"""
+            <div class="card card-gold fade-in">
+                <p class="section-label">Batch Summary</p>
+                <table style="width:100%; font-size:0.88rem; border-collapse:collapse;">
+                    <tr>
+                        <td style="color:var(--muted); padding:0.35rem 0">Files</td>
+                        <td style="color:var(--text)">{len(uploaded_files)} file(s)</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--muted); padding:0.35rem 0">Total Size</td>
+                        <td style="color:var(--text)">{total_size // 1024} KB</td>
+                    </tr>
+                    <tr>
+                        <td style="color:var(--muted); padding:0.35rem 0">Types</td>
+                        <td style="color:var(--text)">{", ".join(set(f.type for f in uploaded_files))}</td>
+                    </tr>
+                </table>
+                <br>
+                <div class="info-box" style="margin:0">
+                    ✨ Meta Vision will transcribe all notes and check for errors.
                 </div>
-                """, unsafe_allow_html=True)
+            </div>
+            """, unsafe_allow_html=True)
 
             st.markdown("<br>", unsafe_allow_html=True)
             if st.button("🔍 Process Notes", use_container_width=False):
-                ext = uploaded.name.rsplit(".", 1)[-1].lower()
-                suffix = f".{ext}"
+                all_notes = []
+                all_recs = []
 
-                with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-                    tmp.write(uploaded.getbuffer())
-                    tmp_path = tmp.name
+                progress = st.progress(0, text="Starting...")
 
-                try:
-                    with st.spinner("🤖 Gemini Vision is reading your notes..."):
-                        if ext == "pdf":
-                            notes, recs = process_pdf(tmp_path)
+                for idx, uploaded in enumerate(uploaded_files):
+                    ext = uploaded.name.rsplit(".", 1)[-1].lower()
+                    suffix = f".{ext}"
+                    progress.progress((idx) / len(uploaded_files), text=f"Processing {uploaded.name}...")
+
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                        tmp.write(uploaded.getbuffer())
+                        tmp_path = tmp.name
+
+                    try:
+                        with st.spinner(f"🤖 Gemini Vision is reading: {uploaded.name}"):
+                            if ext == "pdf":
+                                notes, recs = process_pdf(tmp_path)
+                            else:
+                                notes, recs = process_image(tmp_path)
+
+                        if notes.startswith("Error"):
+                            st.error(f"Failed to process {uploaded.name}: {notes}")
                         else:
-                            notes, recs = process_image(tmp_path)
+                            all_notes.append(f"## {uploaded.name}\n\n{notes}")
+                            all_recs.extend(recs if isinstance(recs, list) else [recs])
 
-                    if notes.startswith("Error"):
-                        st.error(f"Processing failed: {notes}")
-                    else:
-                        st.session_state.notes_markdown = notes
-                        st.session_state.notes_recommendations = recs
-                        st.session_state.notes_filename = uploaded.name
-                        # Build vectorstore silently
-                        with st.spinner("🧠 Building notes index..."):
-                            vs = create_notes_vectorstore(notes)
-                            st.session_state.notes_vectorstore = vs
-                        st.success("✅ Notes processed successfully!")
-                        st.rerun()
-                finally:
-                    os.unlink(tmp_path)
+                    finally:
+                        os.unlink(tmp_path)
+
+                progress.progress(1.0, text="Done!")
+
+                if all_notes:
+                    combined_notes = "\n\n---\n\n".join(all_notes)
+                    combined_recs = "\n".join(all_recs)
+
+                    st.session_state.notes_markdown = combined_notes
+                    st.session_state.notes_recommendations = combined_recs
+                    st.session_state.notes_filename = f"{len(uploaded_files)} files"
+
+                    with st.spinner("🧠 Building notes index..."):
+                        vs = create_notes_vectorstore(combined_notes)
+                        st.session_state.notes_vectorstore = vs
+
+                    st.success(f"✅ {len(all_notes)} file(s) processed successfully!")
+                    st.rerun()
+
         else:
             st.markdown("""
             <div class="warn-box">
-                📤 Drag and drop a file above, or click to browse.
+                📤 Drag and drop files above, or click to browse.
                 Supports <b>JPG, PNG, WEBP</b> images and <b>PDF</b> files.
+                You can select <b>multiple files</b> at once.
             </div>
             """, unsafe_allow_html=True)
+
 
     # ────────────────────────────────────────
     # STEP 2 — Notes processed: show results
