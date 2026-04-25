@@ -8,6 +8,7 @@
    pip install -r requirements.txt
 4. Create .env file and add
    GROQ_API_KEY=your_key_here
+   GROQ_API_VISION=your_key_here
 5. Run ingestion
    python ingest.py
 6. Run app
