@@ -2,6 +2,7 @@
 
 import os
 import base64
+import fitz  # PyMuPDF
 from dotenv import load_dotenv
 from openai import OpenAI
 
@@ -58,7 +59,7 @@ Format your response EXACTLY like this:
 """
 
 
-# ✅ SINGLE IMAGE (keep this)
+# ✅ SINGLE IMAGE
 def process_image(image_path: str) -> tuple[str, str]:
     try:
         print("📸 Reading image...")
@@ -97,7 +98,7 @@ def process_image(image_path: str) -> tuple[str, str]:
         return f"Error: {str(e)}", ""
 
 
-# ✅ MULTIPLE IMAGES (THIS IS THE NEW ONE)
+# ✅ MULTIPLE IMAGES
 def process_multiple_images(image_paths: list[str]) -> tuple[str, str]:
     try:
         print("📸 Reading multiple images...")
@@ -138,29 +139,37 @@ def process_multiple_images(image_paths: list[str]) -> tuple[str, str]:
         return f"Error: {str(e)}", ""
 
 
-# ✅ PDF (keep as is)
+# ✅ PDF — converts each page to an image, then sends as vision input
 def process_pdf(pdf_path: str) -> tuple[str, str]:
     try:
-        print("📄 Reading PDF...")
+        print("📄 Reading PDF and converting pages to images...")
 
-        with open(pdf_path, "rb") as f:
-            pdf_data = base64.b64encode(f.read()).decode("utf-8")
+        doc = fitz.open(pdf_path)
+        content = [{"type": "text", "text": VISION_PROMPT}]
+
+        for page_num in range(len(doc)):
+            page = doc[page_num]
+            # Render page at 150 DPI for good quality without hitting token limits
+            pix = page.get_pixmap(dpi=150)
+            img_bytes = pix.tobytes("png")
+            img_b64 = base64.b64encode(img_bytes).decode("utf-8")
+
+            content.append({
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/png;base64,{img_b64}"
+                }
+            })
+
+        print(f"🤖 Sending {len(doc)} page(s) to Meta...")
+        doc.close()
 
         response = client.chat.completions.create(
             model="meta-llama/llama-4-scout-17b-16e-instruct",
             messages=[
                 {
                     "role": "user",
-                    "content": [
-                        {"type": "text", "text": VISION_PROMPT},
-                        {
-                            "type": "file",
-                            "file": {
-                                "filename": "document.pdf",
-                                "file_data": pdf_data
-                            }
-                        }
-                    ]
+                    "content": content
                 }
             ]
         )
