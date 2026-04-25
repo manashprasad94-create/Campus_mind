@@ -13,3 +13,7 @@ reportlab
 markdown
 streamlit
 langchain_groq
+openai
+frontend
+pymupdf
+fitz
